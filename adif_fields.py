@@ -4,11 +4,12 @@
 Usage:
     adif_fields.py input.adi --add-operator KN2D --add-my_gridsquare EL87
     adif_fields.py input.adi --add-operator KN2D --override
-    adif_fields.py input.adi --delete-N3FJP*
-    adif_fields.py input.adi --delete-APP* --add-operator KN2D --output-file out.adi
+    adif_fields.py input.adi --delete-N3FJP%
+    adif_fields.py input.adi --delete-APP% --add-operator KN2D --output-file out.adi
 
-Delete patterns support * as a wildcard (e.g. --delete-N3FJP* removes all
-N3FJP_COMPUTERNAME, N3FJP_StationID, etc.).
+Delete patterns use % as a wildcard (e.g. --delete-N3FJP% removes all
+N3FJP_COMPUTERNAME, N3FJP_StationID, etc.). % is used instead of * to
+avoid shell glob expansion.
 """
 
 import sys
@@ -67,9 +68,13 @@ def format_field(name, value):
 
 
 def matches_any_pattern(field_name, patterns):
-    """Check if field_name matches any of the glob patterns (case-insensitive)."""
+    """Check if field_name matches any of the patterns (case-insensitive).
+
+    Patterns use % as wildcard, converted to * for fnmatch.
+    """
     for pattern in patterns:
-        if fnmatch.fnmatch(field_name.upper(), pattern.upper()):
+        glob_pattern = pattern.replace("%", "*")
+        if fnmatch.fnmatch(field_name.upper(), glob_pattern.upper()):
             return True
     return False
 
