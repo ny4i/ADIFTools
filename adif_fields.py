@@ -39,7 +39,8 @@ Options:
 
 Wildcards:
     Use % as a wildcard in --delete patterns (% is used instead of *
-    to avoid shell glob expansion).
+    to avoid shell glob expansion). All field matching is case-insensitive,
+    so --delete-comment, --delete-Comment, and --delete-COMMENT all work.
 
     --delete-N3FJP%             Deletes N3FJP_COMPUTERNAME, N3FJP_StationID, etc.
     --delete-APP%               Deletes all APP-prefixed fields
@@ -125,22 +126,43 @@ def matches_any_pattern(field_name, patterns):
 
 
 def delete_fields(record_text, patterns):
-    """Remove all ADIF fields matching any of the glob patterns."""
-    # Match a field tag + value + optional trailing whitespace
-    def replacer(m):
-        field_name = m.group(1)
-        if matches_any_pattern(field_name, patterns):
-            return ""
-        return m.group(0)
+    """Remove all ADIF fields matching any of the glob patterns.
 
-    return re.sub(r"<([A-Za-z_][A-Za-z0-9_]*):\d+>[^\s<]*\s?", replacer, record_text)
+    Uses the length encoded in each tag to consume the full value,
+    including values that contain spaces.
+    """
+    result = []
+    pos = 0
+    for m in re.finditer(r"<([A-Za-z_][A-Za-z0-9_]*):(\d+)>", record_text):
+        field_name = m.group(1)
+        value_len = int(m.group(2))
+        value_end = m.end() + value_len
+
+        if matches_any_pattern(field_name, patterns):
+            # Keep any text before this field, but strip trailing whitespace
+            # that preceded this tag
+            before = record_text[pos:m.start()]
+            result.append(before)
+            # Skip optional trailing whitespace after the value
+            skip = value_end
+            while skip < len(record_text) and record_text[skip] in (" ", "\t"):
+                skip += 1
+            pos = skip
+        else:
+            # Keep everything from current pos through end of value
+            result.append(record_text[pos:value_end])
+            pos = value_end
+
+    # Append any remaining text after the last field
+    result.append(record_text[pos:])
+    return "".join(result)
 
 
 def add_fields(record_text, fields, override, record_num):
     """Add or replace fields in a record."""
     for field_name, field_value in fields.items():
         pattern = re.compile(
-            rf"<{re.escape(field_name)}:\d+>[^\s<]*",
+            rf"<({re.escape(field_name)}):(\d+)>",
             re.IGNORECASE,
         )
         existing = pattern.search(record_text)
@@ -153,10 +175,13 @@ def add_fields(record_text, fields, override, record_num):
                     file=sys.stderr,
                 )
                 sys.exit(1)
-            record_text = pattern.sub(
-                format_field(field_name, field_value),
-                record_text,
-                count=1,
+            # Replace tag + length-encoded value
+            old_value_len = int(existing.group(2))
+            old_end = existing.end() + old_value_len
+            record_text = (
+                record_text[:existing.start()]
+                + format_field(field_name, field_value)
+                + record_text[old_end:]
             )
         else:
             # Insert before <eor>: detect format (one-per-line vs inline)

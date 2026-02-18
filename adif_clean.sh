@@ -8,7 +8,8 @@
 #   adif_clean.sh <input_dir> <output_dir>
 #   adif_clean.sh .            ./cleaned
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Directory containing the Python ADIF scripts
+TOOLS_DIR=~/projects/ADIFTools
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "adif_clean.sh - Batch clean ADIF files"
@@ -49,9 +50,9 @@ for f in "$INPUT_DIR"/*.adi; do
     basename="$(basename "$f")"
     echo "Processing: $basename"
 
-    if python3 "$SCRIPT_DIR/adif_oneline.py" "$f" \
-        | python3 "$SCRIPT_DIR/adif_fields.py" /dev/stdin \
-            --delete-APP% --delete-N3FJP% \
+    if python3 "$TOOLS_DIR/adif_oneline.py" "$f" \
+        | python3 "$TOOLS_DIR/adif_fields.py" /dev/stdin \
+            --delete-APP% --delete-N3FJP% --delete-Comment \
             --output-file "$OUTPUT_DIR/$basename"; then
         count=$((count + 1))
     else
