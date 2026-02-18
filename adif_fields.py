@@ -173,7 +173,7 @@ def add_fields(record_text, fields, override, record_num):
             old_end = existing.end() + old_value_len
             old_value = record_text[existing.end():old_end]
 
-            if old_value == field_value:
+            if old_value.upper() == field_value.upper():
                 continue  # Same value, skip silently
 
             if not override:
