@@ -168,16 +168,22 @@ def add_fields(record_text, fields, override, record_num):
         existing = pattern.search(record_text)
 
         if existing:
+            # Extract current value using the length from the tag
+            old_value_len = int(existing.group(2))
+            old_end = existing.end() + old_value_len
+            old_value = record_text[existing.end():old_end]
+
+            if old_value == field_value:
+                continue  # Same value, skip silently
+
             if not override:
                 print(
                     f"Error: Record {record_num} already has field "
-                    f"<{field_name}>. Use --override to replace.",
+                    f"<{field_name}> with a different value. "
+                    f"Use --override to replace.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
-            # Replace tag + length-encoded value
-            old_value_len = int(existing.group(2))
-            old_end = existing.end() + old_value_len
             record_text = (
                 record_text[:existing.start()]
                 + format_field(field_name, field_value)
