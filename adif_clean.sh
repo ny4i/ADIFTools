@@ -52,7 +52,7 @@ for f in "$INPUT_DIR"/*.adi; do
 
     if python3 "$TOOLS_DIR/adif_oneline.py" "$f" \
         | python3 "$TOOLS_DIR/adif_fields.py" /dev/stdin \
-            --delete-APP% --delete-N3FJP% --delete-Comment \
+            --delete-APP% --delete-N3FJP% --delete-Comment --add-Station_Callsign W1AW/4 --override \
             --output-file "$OUTPUT_DIR/$basename"; then
         count=$((count + 1))
     else

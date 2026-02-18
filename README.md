@@ -4,6 +4,8 @@ A suite of Python utilities for manipulating ADIF (Amateur Data Interchange Form
 
 No dependencies beyond Python 3.
 
+All scripts support `--help` / `-h` for built-in usage information.
+
 ## Tools
 
 ### adif_oneline.py
@@ -20,7 +22,18 @@ Converts ADIF files with one field per line (as exported by N3FJP and other logg
 
 ### adif_fields.py
 
-Add or delete fields across every record in an ADIF file. Supports wildcard deletion using `%` as the wildcard character.
+Add or delete fields across every record in an ADIF file.
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--add-<FIELD> <VALUE>` | Add a field to every record |
+| `--delete-<PATTERN>` | Delete fields matching a name or pattern |
+| `--output-file <file>` | Write to file (default: stdout) |
+| `--override` | Allow replacing fields that already exist |
+
+**Wildcards:** Use `%` as a wildcard in `--delete` patterns (`%` is used instead of `*` to avoid shell glob expansion). All field matching is case-insensitive.
 
 ```bash
 # Add a field
@@ -42,12 +55,36 @@ Add or delete fields across every record in an ADIF file. Supports wildcard dele
 ./adif_fields.py input.adi --delete-N3FJP% --delete-APP% --add-OPERATOR KN2D --override
 ```
 
+### adif_clean.sh
+
+Batch processing script that runs all `.adi` files in a directory through `adif_oneline.py` and `adif_fields.py` to produce cleaned output. Removes `APP*`, `N3FJP*`, and `Comment` fields by default.
+
+Edit the `TOOLS_DIR` variable at the top of the script to point to the directory containing the Python scripts.
+
+```bash
+./adif_clean.sh <input_dir> <output_dir>
+
+# Example
+./adif_clean.sh ~/logs ~/logs/cleaned
+```
+
 ### Piping
 
 The tools are designed to work together in a pipeline:
 
 ```bash
-./adif_oneline.py n3fjp_export.adi | ./adif_fields.py /dev/stdin --delete-N3FJP% --add-OPERATOR KN2D --override --output-file clean.adi
+# Full cleanup pipeline
+./adif_oneline.py n3fjp_export.adi \
+    | ./adif_fields.py /dev/stdin --delete-N3FJP% --delete-APP% --delete-Comment \
+        --add-OPERATOR KN2D --override \
+        --output-file clean.adi
+
+# One-liner to process all files in a directory (zsh)
+for f in /path/to/dir/*.adi; do
+    ./adif_oneline.py "$f" \
+        | ./adif_fields.py /dev/stdin --delete-N3FJP% --delete-APP% \
+            --output-file "processed/${f:t}"
+done
 ```
 
 ## License

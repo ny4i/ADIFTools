@@ -26,7 +26,7 @@ def convert(infile, outfile):
             continue
 
         record_fields.append(stripped)
-        if re.match(r"<eor>", stripped, re.IGNORECASE):
+        if re.search(r"<eor>", stripped, re.IGNORECASE):
             outfile.write(" ".join(record_fields) + "\n")
             record_fields = []
 
