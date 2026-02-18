@@ -17,7 +17,47 @@ import re
 import fnmatch
 
 
+HELP_TEXT = """\
+adif_fields.py - Add or delete fields in ADIF records
+
+Adds new fields to every record, replaces existing fields, or deletes
+fields by name or wildcard pattern. When both --add and --delete are
+used together, deletes are applied first.
+
+Usage:
+    adif_fields.py <input.adi> [options]
+
+Arguments:
+    input.adi                   Input ADIF file (use /dev/stdin for pipes)
+
+Options:
+    --add-<FIELD> <VALUE>       Add field to every record
+    --delete-<PATTERN>          Delete fields matching pattern
+    --output-file <file>        Write to file (default: stdout)
+    --override                  Allow replacing existing fields on --add
+    --help, -h                  Show this help message
+
+Wildcards:
+    Use % as a wildcard in --delete patterns (% is used instead of *
+    to avoid shell glob expansion).
+
+    --delete-N3FJP%             Deletes N3FJP_COMPUTERNAME, N3FJP_StationID, etc.
+    --delete-APP%               Deletes all APP-prefixed fields
+    --delete-Contest_ID         Deletes exact field name
+
+Examples:
+    adif_fields.py input.adi --add-OPERATOR KN2D
+    adif_fields.py input.adi --add-OPERATOR KN2D --override --output-file out.adi
+    adif_fields.py input.adi --delete-N3FJP% --delete-APP%
+    adif_fields.py input.adi --delete-N3FJP% --add-OPERATOR KN2D --override
+"""
+
+
 def parse_args(argv):
+    if len(argv) > 1 and argv[1] in ("--help", "-h"):
+        print(HELP_TEXT)
+        sys.exit(0)
+
     input_file = None
     output_file = None
     override = False
@@ -27,7 +67,10 @@ def parse_args(argv):
     i = 1
     while i < len(argv):
         arg = argv[i]
-        if arg == "--output-file" and i + 1 < len(argv):
+        if arg in ("--help", "-h"):
+            print(HELP_TEXT)
+            sys.exit(0)
+        elif arg == "--output-file" and i + 1 < len(argv):
             output_file = argv[i + 1]
             i += 2
         elif arg == "--override":
@@ -54,10 +97,12 @@ def parse_args(argv):
             f"[--add-<field> <value>] [--delete-<pattern>] [--override]",
             file=sys.stderr,
         )
+        print(f"Try '{argv[0]} --help' for more information.", file=sys.stderr)
         sys.exit(1)
 
     if not add_fields and not delete_patterns:
         print("No --add or --delete arguments provided.", file=sys.stderr)
+        print(f"Try '{argv[0]} --help' for more information.", file=sys.stderr)
         sys.exit(1)
 
     return input_file, output_file, add_fields, delete_patterns, override

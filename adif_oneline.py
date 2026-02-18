@@ -35,9 +35,39 @@ def convert(infile, outfile):
         outfile.write(" ".join(record_fields) + "\n")
 
 
+HELP_TEXT = """\
+adif_oneline.py - Convert multi-line ADIF to one record per line
+
+Converts ADIF files where each field is on its own line (as exported by
+N3FJP and other loggers) into one-record-per-line format. The file header
+is preserved as-is. Each QSO record is joined into a single line ending
+with <eor>.
+
+Usage:
+    adif_oneline.py <input.adi> [output.adi]
+
+Arguments:
+    input.adi       Input ADIF file (one field per line)
+    output.adi      Output file (optional, defaults to stdout)
+
+Options:
+    --help, -h      Show this help message
+
+Examples:
+    adif_oneline.py n3fjp.adi
+    adif_oneline.py n3fjp.adi output.adi
+    adif_oneline.py n3fjp.adi | adif_fields.py /dev/stdin --add-OPERATOR KN2D
+"""
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("--help", "-h"):
+        print(HELP_TEXT)
+        sys.exit(0)
+
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} <input.adi> [output.adi]", file=sys.stderr)
+        print(f"Try '{sys.argv[0]} --help' for more information.", file=sys.stderr)
         sys.exit(1)
 
     inpath = sys.argv[1]
